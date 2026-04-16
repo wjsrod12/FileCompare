@@ -284,5 +284,7 @@ namespace FileCompare
 
             PopulateListView(lvwLeftDir, txtLeftDir.Text);
         }
+
+
     }
 }
