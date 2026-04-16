@@ -31,6 +31,9 @@
             splitContainer1 = new SplitContainer();
             panel3 = new Panel();
             lvwLeftDir = new ListView();
+            columnHeader4 = new ColumnHeader();
+            columnHeader5 = new ColumnHeader();
+            columnHeader6 = new ColumnHeader();
             panel2 = new Panel();
             txtLeftDir = new TextBox();
             btnLeftDir = new Button();
@@ -47,9 +50,6 @@
             btnRightDir = new Button();
             panel4 = new Panel();
             btnCopyFromRight = new Button();
-            columnHeader4 = new ColumnHeader();
-            columnHeader5 = new ColumnHeader();
-            columnHeader6 = new ColumnHeader();
             ((System.ComponentModel.ISupportInitialize)splitContainer1).BeginInit();
             splitContainer1.Panel1.SuspendLayout();
             splitContainer1.Panel2.SuspendLayout();
@@ -107,6 +107,21 @@
             lvwLeftDir.UseCompatibleStateImageBehavior = false;
             lvwLeftDir.View = View.Details;
             // 
+            // columnHeader4
+            // 
+            columnHeader4.Text = "이름";
+            columnHeader4.Width = 140;
+            // 
+            // columnHeader5
+            // 
+            columnHeader5.Text = "크기";
+            columnHeader5.Width = 100;
+            // 
+            // columnHeader6
+            // 
+            columnHeader6.Text = "수정일";
+            columnHeader6.Width = 320;
+            // 
             // panel2
             // 
             panel2.Controls.Add(txtLeftDir);
@@ -156,6 +171,7 @@
             btnCopyFromLeft.TabIndex = 1;
             btnCopyFromLeft.Text = ">>>";
             btnCopyFromLeft.UseVisualStyleBackColor = true;
+            btnCopyFromLeft.Click += btnCopyFromLeft_Click;
             // 
             // lblAppName
             // 
@@ -253,21 +269,7 @@
             btnCopyFromRight.TabIndex = 0;
             btnCopyFromRight.Text = "<<<";
             btnCopyFromRight.UseVisualStyleBackColor = true;
-            // 
-            // columnHeader4
-            // 
-            columnHeader4.Text = "이름";
-            columnHeader4.Width = 140;
-            // 
-            // columnHeader5
-            // 
-            columnHeader5.Text = "크기";
-            columnHeader5.Width = 100;
-            // 
-            // columnHeader6
-            // 
-            columnHeader6.Text = "수정일";
-            columnHeader6.Width = 320;
+            btnCopyFromRight.Click += btnCopyFromRight_Click;
             // 
             // Form1
             // 

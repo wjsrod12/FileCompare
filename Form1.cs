@@ -202,7 +202,7 @@ namespace FileCompare
                         CompareAndPopulate(dlg.SelectedPath, txtRightDir.Text);
                     else
                         PopulateListView(lvwLeftDir, dlg.SelectedPath);
-                    
+
                 }
 
             }
@@ -226,10 +226,63 @@ namespace FileCompare
                         CompareAndPopulate(txtLeftDir.Text, dlg.SelectedPath);
                     else
                         PopulateListView(lvwRightDir, dlg.SelectedPath);
-                    
+
                 }
 
             }
+        }
+
+        private void CopyFileWithConfirm(string source, string dest)
+        {
+            if (File.Exists(dest))
+            {
+                var result = MessageBox.Show(
+                    $"이미 존재하는 파일입니다.\n덮어쓰시겠습니까?\n{Path.GetFileName(dest)}",
+                    "확인",
+                    MessageBoxButtons.YesNo,
+                    MessageBoxIcon.Question);
+
+                if (result != DialogResult.Yes)
+                    return;
+            }
+
+            File.Copy(source, dest, true); // true = 덮어쓰기 허용
+        }
+
+        private void btnCopyFromLeft_Click(object sender, EventArgs e)
+        {
+            foreach (ListViewItem item in lvwLeftDir.SelectedItems)
+            {
+                string fileName = item.Text;
+
+                string sourcePath = Path.Combine(txtLeftDir.Text, fileName);
+                string destPath = Path.Combine(txtRightDir.Text, fileName);
+
+                if (!File.Exists(sourcePath))
+                    continue;
+
+                CopyFileWithConfirm(sourcePath, destPath);
+            }
+
+            PopulateListView(lvwRightDir, txtRightDir.Text);
+        }
+
+        private void btnCopyFromRight_Click(object sender, EventArgs e)
+        {
+            foreach (ListViewItem item in lvwRightDir.SelectedItems)
+            {
+                string fileName = item.Text;
+
+                string sourcePath = Path.Combine(txtRightDir.Text, fileName);
+                string destPath = Path.Combine(txtLeftDir.Text, fileName);
+
+                if (!File.Exists(sourcePath))
+                    continue;
+
+                CopyFileWithConfirm(sourcePath, destPath);
+            }
+
+            PopulateListView(lvwLeftDir, txtLeftDir.Text);
         }
     }
 }
