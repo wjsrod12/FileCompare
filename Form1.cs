@@ -75,28 +75,37 @@ namespace FileCompare
 
             try
             {
-                var leftFiles = Directory.Exists(leftFolder)
-                    ? Directory.EnumerateFiles(leftFolder).Select(p => new FileInfo(p)).ToDictionary(f => f.Name, StringComparer.OrdinalIgnoreCase)
-                    : new Dictionary<string, FileInfo>(StringComparer.OrdinalIgnoreCase);
+                // Include both files and directories in the comparison
+                var leftEntries = Directory.Exists(leftFolder)
+                    ? Directory.EnumerateFileSystemEntries(leftFolder).Select(p => Directory.Exists(p) ? (FileSystemInfo)new DirectoryInfo(p) : new FileInfo(p)).ToDictionary(f => f.Name, StringComparer.OrdinalIgnoreCase)
+                    : new Dictionary<string, FileSystemInfo>(StringComparer.OrdinalIgnoreCase);
 
-                var rightFiles = Directory.Exists(rightFolder)
-                    ? Directory.EnumerateFiles(rightFolder).Select(p => new FileInfo(p)).ToDictionary(f => f.Name, StringComparer.OrdinalIgnoreCase)
-                    : new Dictionary<string, FileInfo>(StringComparer.OrdinalIgnoreCase);
+                var rightEntries = Directory.Exists(rightFolder)
+                    ? Directory.EnumerateFileSystemEntries(rightFolder).Select(p => Directory.Exists(p) ? (FileSystemInfo)new DirectoryInfo(p) : new FileInfo(p)).ToDictionary(f => f.Name, StringComparer.OrdinalIgnoreCase)
+                    : new Dictionary<string, FileSystemInfo>(StringComparer.OrdinalIgnoreCase);
 
-                var allNames = leftFiles.Keys.Union(rightFiles.Keys, StringComparer.OrdinalIgnoreCase)
+                var allNames = leftEntries.Keys.Union(rightEntries.Keys, StringComparer.OrdinalIgnoreCase)
                     .OrderBy(n => n, StringComparer.OrdinalIgnoreCase);
 
                 foreach (var name in allNames)
                 {
-                    leftFiles.TryGetValue(name, out var lf);
-                    rightFiles.TryGetValue(name, out var rf);
+                    leftEntries.TryGetValue(name, out var lf);
+                    rightEntries.TryGetValue(name, out var rf);
 
                     // Left item
                     var leftItem = lf != null ? new ListViewItem(lf.Name) : new ListViewItem(string.Empty);
                     if (lf != null)
                     {
-                        leftItem.SubItems.Add(lf.Length.ToString("N0") + " 바이트");
-                        leftItem.SubItems.Add(lf.LastWriteTime.ToString("g"));
+                        if (lf is FileInfo lfi)
+                        {
+                            leftItem.SubItems.Add(lfi.Length.ToString("N0") + " 바이트");
+                            leftItem.SubItems.Add(lfi.LastWriteTime.ToString("g"));
+                        }
+                        else // DirectoryInfo
+                        {
+                            leftItem.SubItems.Add("<DIR>");
+                            leftItem.SubItems.Add(lf.LastWriteTime.ToString("g"));
+                        }
                     }
                     else
                     {
@@ -108,8 +117,16 @@ namespace FileCompare
                     var rightItem = rf != null ? new ListViewItem(rf.Name) : new ListViewItem(string.Empty);
                     if (rf != null)
                     {
-                        rightItem.SubItems.Add(rf.Length.ToString("N0") + " 바이트");
-                        rightItem.SubItems.Add(rf.LastWriteTime.ToString("g"));
+                        if (rf is FileInfo rfi)
+                        {
+                            rightItem.SubItems.Add(rfi.Length.ToString("N0") + " 바이트");
+                            rightItem.SubItems.Add(rfi.LastWriteTime.ToString("g"));
+                        }
+                        else // DirectoryInfo
+                        {
+                            rightItem.SubItems.Add("<DIR>");
+                            rightItem.SubItems.Add(rf.LastWriteTime.ToString("g"));
+                        }
                     }
                     else
                     {
@@ -120,31 +137,62 @@ namespace FileCompare
                     // Coloring rules
                     if (lf != null && rf != null)
                     {
-                        // same file
-                        if (lf.Length == rf.Length && lf.LastWriteTime == rf.LastWriteTime)
+                        // if same type
+                        if (lf.GetType() == rf.GetType())
                         {
-                            leftItem.ForeColor = Color.Black;
-                            rightItem.ForeColor = Color.Black;
+                            if (lf is FileInfo lfFile && rf is FileInfo rfFile)
+                            {
+                                // same file
+                                if (lfFile.Length == rfFile.Length && lfFile.LastWriteTime == rfFile.LastWriteTime)
+                                {
+                                    leftItem.ForeColor = Color.Black;
+                                    rightItem.ForeColor = Color.Black;
+                                }
+                                else
+                                {
+                                    if (lfFile.LastWriteTime > rfFile.LastWriteTime)
+                                    {
+                                        leftItem.ForeColor = Color.Red;
+                                        rightItem.ForeColor = Color.Gray;
+                                    }
+                                    else if (lfFile.LastWriteTime < rfFile.LastWriteTime)
+                                    {
+                                        leftItem.ForeColor = Color.Gray;
+                                        rightItem.ForeColor = Color.Red;
+                                    }
+                                    else
+                                    {
+                                        leftItem.ForeColor = Color.Orange;
+                                        rightItem.ForeColor = Color.Orange;
+                                    }
+                                }
+                            }
+                            else // both directories -> compare timestamps
+                            {
+                                var ldt = lf.LastWriteTime;
+                                var rdt = rf.LastWriteTime;
+                                if (ldt == rdt)
+                                {
+                                    leftItem.ForeColor = Color.Black;
+                                    rightItem.ForeColor = Color.Black;
+                                }
+                                else if (ldt > rdt)
+                                {
+                                    leftItem.ForeColor = Color.Red;
+                                    rightItem.ForeColor = Color.Gray;
+                                }
+                                else
+                                {
+                                    leftItem.ForeColor = Color.Gray;
+                                    rightItem.ForeColor = Color.Red;
+                                }
+                            }
                         }
                         else
                         {
-                            // newer = red, older = gray
-                            if (lf.LastWriteTime > rf.LastWriteTime)
-                            {
-                                leftItem.ForeColor = Color.Red;
-                                rightItem.ForeColor = Color.Gray;
-                            }
-                            else if (lf.LastWriteTime < rf.LastWriteTime)
-                            {
-                                leftItem.ForeColor = Color.Gray;
-                                rightItem.ForeColor = Color.Red;
-                            }
-                            else
-                            {
-                                // dates equal but sizes differ -> mark both orange
-                                leftItem.ForeColor = Color.Orange;
-                                rightItem.ForeColor = Color.Orange;
-                            }
+                            // different types (file vs dir)
+                            leftItem.ForeColor = Color.Orange;
+                            rightItem.ForeColor = Color.Orange;
                         }
                     }
                     else if (lf != null)
@@ -253,36 +301,75 @@ namespace FileCompare
         {
             foreach (ListViewItem item in lvwLeftDir.SelectedItems)
             {
-                string fileName = item.Text;
+                string name = item.Text;
 
-                string sourcePath = Path.Combine(txtLeftDir.Text, fileName);
-                string destPath = Path.Combine(txtRightDir.Text, fileName);
+                string sourcePath = Path.Combine(txtLeftDir.Text, name);
+                string destPath = Path.Combine(txtRightDir.Text, name);
 
-                if (!File.Exists(sourcePath))
-                    continue;
-
-                CopyFileWithConfirm(sourcePath, destPath);
+                // 폴더면 폴더 전체 복사
+                if (Directory.Exists(sourcePath))
+                {
+                    CopyDirectory(sourcePath, destPath);
+                }
+                // 파일이면 파일 복사
+                else if (File.Exists(sourcePath))
+                {
+                    CopyFileWithConfirm(sourcePath, destPath);
+                }
+                // 존재하지 않으면 무시
             }
 
+            // 우측 목록 갱신
             PopulateListView(lvwRightDir, txtRightDir.Text);
         }
 
+
         private void btnCopyFromRight_Click(object sender, EventArgs e)
         {
+            
             foreach (ListViewItem item in lvwRightDir.SelectedItems)
             {
-                string fileName = item.Text;
+                string name = item.Text;
 
-                string sourcePath = Path.Combine(txtRightDir.Text, fileName);
-                string destPath = Path.Combine(txtLeftDir.Text, fileName);
+                string sourcePath = Path.Combine(txtRightDir.Text, name);
+                string destPath = Path.Combine(txtLeftDir.Text, name);
 
-                if (!File.Exists(sourcePath))
-                    continue;
-
-                CopyFileWithConfirm(sourcePath, destPath);
+                // 📁 폴더면 → 통째로 복사
+                if (Directory.Exists(sourcePath))
+                {
+                    CopyDirectory(sourcePath, destPath);
+                }
+                // 📄 파일이면 → 파일 복사
+                else if (File.Exists(sourcePath))
+                {
+                    CopyFileWithConfirm(sourcePath, destPath);
+                }
             }
 
+            // 🔥 갱신 + 색상 다시 적용
             PopulateListView(lvwLeftDir, txtLeftDir.Text);
+        }
+
+
+        private void CopyDirectory(string sourceDir, string destDir)
+        {
+            Directory.CreateDirectory(destDir);
+
+            foreach (var file in Directory.GetFiles(sourceDir))
+            {
+                string fileName = Path.GetFileName(file);
+                string destFile = Path.Combine(destDir, fileName);
+
+                CopyFileWithConfirm(file, destFile);
+            }
+
+            foreach (var dir in Directory.GetDirectories(sourceDir))
+            {
+                string dirName = Path.GetFileName(dir);
+                string destSubDir = Path.Combine(destDir, dirName);
+
+                CopyDirectory(dir, destSubDir);
+            }
         }
 
 
